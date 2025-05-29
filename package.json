@@ -1,0 +1,76 @@
+{
+  "name": "ai-readme-generator",
+  "displayName": "AI README Generator",
+  "description": "Generate professional README files using AI",
+  "version": "0.0.1",
+  "publisher": "your-publisher-name",
+  "engines": {
+    "vscode": "^1.100.0"
+  },
+  "categories": [
+    "Other",
+    "Documentation"
+  ],
+  "activationEvents": [
+    "*"
+  ],
+  "main": "./dist/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "ai-readme-generator.openForm",
+        "title": "Generate AI README",
+        "category": "AI README"
+      }
+    ],
+    "keybindings": [
+      {
+        "command": "ai-readme-generator.openForm",
+        "key": "ctrl+shift+r",
+        "mac": "cmd+shift+r",
+        "when": "editorTextFocus"
+      }
+    ],
+    "menus": {
+      "editor/context": [
+        {
+          "command": "ai-readme-generator.openForm",
+          "group": "navigation"
+        }
+      ],
+      "explorer/context": [
+        {
+          "command": "ai-readme-generator.openForm",
+          "group": "navigation"
+        }
+      ]
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run package",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "package": "vsce package",
+    "pretest": "npm run compile && npm run lint",
+    "lint": "eslint src --ext ts",
+    "test": "node ./out/test/runTest.js"
+  },
+  "devDependencies": {
+    "@types/mocha": "^10.0.10",
+    "@types/node": "20.x",
+    "@types/vscode": "^1.100.0",
+    "@typescript-eslint/eslint-plugin": "^8.31.1",
+    "@typescript-eslint/parser": "^8.31.1",
+    "@vscode/test-cli": "^0.0.10",
+    "@vscode/test-electron": "^2.5.2",
+    "esbuild": "^0.25.3",
+    "eslint": "^9.25.1",
+    "npm-run-all": "^4.1.5",
+    "typescript": "^5.8.3"
+  },
+  "dependencies": {
+    "@mistralai/mistralai": "^0.0.10",
+    "axios": "^1.9.0",
+    "dotenv": "^16.5.0"
+  }
+}
