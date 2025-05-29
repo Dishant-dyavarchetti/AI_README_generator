@@ -37,4 +37,8 @@ env/
 
 # OS
 .DS_Store
-Thumbs.db 
+Thumbs.db
+
+# Node
+node_modules/
+package-lock.json 
