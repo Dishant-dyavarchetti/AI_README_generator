@@ -54,7 +54,7 @@ npm install
 1. Start the backend server:
 ```bash
 cd backend
-uvicorn app.main:app --reload
+python -m uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 ```
 
 2. Build and run the VS Code extension:
