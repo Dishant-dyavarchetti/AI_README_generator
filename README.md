@@ -1,71 +1,110 @@
-# ai-readme-generator README
+# AI README Generator
 
-This is the README for your extension "ai-readme-generator". After writing up a brief description, we recommend including the following sections.
+A VS Code extension that generates professional README files using AI.
 
-## Features
+## Prerequisites
 
-Describe specific features of your extension including screenshots of your extension in action. Image paths are relative to this README file.
+Before you begin, ensure you have the following installed:
+- [Node.js](https://nodejs.org/) (v16 or higher)
+- [Python](https://www.python.org/) (v3.8 or higher)
+- [Visual Studio Code](https://code.visualstudio.com/)
+- [Git](https://git-scm.com/)
 
-For example if there is an image subfolder under your extension project workspace:
+## Environment Setup
 
-\!\[feature X\]\(images/feature-x.png\)
+1. Clone the repository:
+```bash
+git clone <your-repository-url>
+cd ai-readme-generator
+```
 
-> Tip: Many popular extensions utilize animations. This is an excellent way to show off your extension! We recommend short, focused animations that are easy to follow.
+2. Set up the backend:
+```bash
+# Create and activate a virtual environment
+python -m venv venv
+# On Windows
+.\venv\Scripts\activate
+# On macOS/Linux
+source venv/bin/activate
 
-## Requirements
+# Install backend dependencies
+cd backend
+pip install -r requirements.txt
+```
 
-If you have any requirements or dependencies, add a section describing those and how to install and configure them.
+3. Set up the frontend (VS Code extension):
+```bash
+# Install Node.js dependencies
+npm install
+```
 
-## Extension Settings
+4. Create environment files:
+   - Create a `.env` file in the root directory with:
+     ```
+     GROQ_API_KEY=your_groq_api_key
+     BACKEND_URL=http://localhost:8000
+     ```
+   - Create a `.env` file in the backend directory with:
+     ```
+     GROQ_API_KEY=your_groq_api_key
+     ```
 
-Include if your extension adds any VS Code settings through the `contributes.configuration` extension point.
+## Running the Project
 
-For example:
+1. Start the backend server:
+```bash
+cd backend
+uvicorn app.main:app --reload
+```
 
-This extension contributes the following settings:
+2. Build and run the VS Code extension:
+```bash
+# In the root directory
+npm run compile
+npm run package
+```
 
-* `myExtension.enable`: Enable/disable this extension.
-* `myExtension.thing`: Set to `blah` to do something.
+3. Install the extension in VS Code:
+   - Open VS Code
+   - Go to Extensions (Ctrl+Shift+X)
+   - Click on "..." and select "Install from VSIX"
+   - Choose the `.vsix` file from the `dist` directory
 
-## Known Issues
+## Usage
 
-Calling out known issues can help limit users opening duplicate issues against your extension.
+1. Open any project in VS Code
+2. Press `Ctrl+Shift+R` (Windows/Linux) or `Cmd+Shift+R` (macOS) to open the README generator
+3. Fill in the required information in the form
+4. Click "Generate" to create your README
 
-## Release Notes
+## Development
 
-Users appreciate release notes as you update your extension.
+- Backend API runs on `http://localhost:8000`
+- API documentation is available at `http://localhost:8000/docs`
+- The extension is configured to use the local backend by default
 
-### 1.0.0
+## Troubleshooting
 
-Initial release of ...
+1. If the extension doesn't work:
+   - Check if the backend server is running
+   - Verify your environment variables are set correctly
+   - Check the VS Code Developer Tools console for errors
 
-### 1.0.1
+2. If the backend fails to start:
+   - Ensure all Python dependencies are installed
+   - Check if the required API keys are set in the `.env` file
+   - Verify Python version compatibility
 
-Fixed issue #.
+## Contributing
 
-### 1.1.0
+1. Create a new branch for your feature
+2. Make your changes
+3. Submit a pull request
 
-Added features X, Y, and Z.
+## License
 
----
+[Your License]
 
-## Following extension guidelines
+## Support
 
-Ensure that you've read through the extensions guidelines and follow the best practices for creating your extension.
-
-* [Extension Guidelines](https://code.visualstudio.com/api/references/extension-guidelines)
-
-## Working with Markdown
-
-You can author your README using Visual Studio Code. Here are some useful editor keyboard shortcuts:
-
-* Split the editor (`Cmd+\` on macOS or `Ctrl+\` on Windows and Linux).
-* Toggle preview (`Shift+Cmd+V` on macOS or `Shift+Ctrl+V` on Windows and Linux).
-* Press `Ctrl+Space` (Windows, Linux, macOS) to see a list of Markdown snippets.
-
-## For more information
-
-* [Visual Studio Code's Markdown Support](http://code.visualstudio.com/docs/languages/markdown)
-* [Markdown Syntax Reference](https://help.github.com/articles/markdown-basics/)
-
-**Enjoy!**
+For support, please [create an issue](your-repository-issues-url) in the repository.
