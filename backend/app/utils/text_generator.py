@@ -2,6 +2,8 @@ import os
 import logging
 import requests
 from typing import Dict, Any
+from dotenv import load_dotenv
+from pathlib import Path
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -9,11 +11,26 @@ logger = logging.getLogger(__name__)
 
 class TextGenerator:
     def __init__(self):
+        # Load environment variables from the root directory
+        root_dir = Path(__file__).parent.parent.parent.parent
+        env_path = root_dir / '.env'
+        logger.info(f"Loading .env from: {env_path}")
+        
+        if not env_path.exists():
+            raise ValueError(f".env file not found at {env_path}")
+            
+        load_dotenv(env_path, override=True)  # Use override=True to ensure we use this .env file
         self.api_key = os.getenv("GROQ_API_KEY")
+        
         if not self.api_key:
             raise ValueError("GROQ_API_KEY environment variable is not set")
+            
+        logger.info(f"GROQ_API_KEY loaded: {'Yes' if self.api_key else 'No'}")
+        logger.info(f"GROQ_API_KEY length: {len(self.api_key) if self.api_key else 0}")
+        logger.info(f"GROQ_API_KEY starts with 'gsk_': {self.api_key.startswith('gsk_') if self.api_key else False}")
+        
         self.api_url = "https://api.groq.com/openai/v1/chat/completions"
-        self.model = "llama-3.3-70b-versatile"  # Updated to the most capable model
+        self.model = "llama-3.3-70b-versatile"
 
     def generate_readme(self, prompt: str) -> str:
         """Generate README content using Groq API."""
@@ -94,7 +111,10 @@ Option 3: [Minimal]
             }
 
             logger.info(f"Sending request to Groq API with model: {self.model}")
-            response = requests.post(self.api_url, headers=headers, json=data)
+            logger.info(f"Request URL: {self.api_url}")
+            logger.info(f"Request headers: {headers}")
+            
+            response = requests.post(self.api_url, headers=headers, json=data, verify=False)
             
             if response.status_code != 200:
                 logger.error(f"Groq API error: {response.status_code} - {response.text}")
