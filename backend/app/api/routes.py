@@ -28,6 +28,8 @@ File Structure:
 {chr(10).join(['- ' + file.path for file in project.file_structure])}
 Author: {project.author_name if project.author_name else 'Not provided'}
 
+Contact details: Include the author email ({project.author_email if project.author_email else 'Not provided'}) and GitHub username ({project.github_username if project.github_username else 'Not provided'}) if provided in a 'Contact' or 'Author' section.
+
 Generate 3 different versions:
 1. Professional and formal
 2. Modern and developer-friendly

@@ -21,6 +21,11 @@
         "command": "ai-readme-generator.openForm",
         "title": "Generate AI README",
         "category": "AI README"
+      },
+      {
+        "command": "ai-readme-generator.automateGit",
+        "title": "Automate Git Process",
+        "category": "AI README"
       }
     ],
     "keybindings": [

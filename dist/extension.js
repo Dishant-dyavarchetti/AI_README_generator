@@ -39,6 +39,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.activate = activate;
 exports.deactivate = deactivate;
 const vscode = __importStar(require("vscode"));
+const child_process_1 = require("child_process");
 const path = __importStar(require("path"));
 const dotenv = __importStar(require("dotenv"));
 const axios_1 = __importDefault(require("axios"));
@@ -67,6 +68,19 @@ if (fs.existsSync(envPath)) {
 else {
     console.log('.env file not found in extension directory');
 }
+// Helper function to run terminal commands
+function runCommand(command, cwd) {
+    return new Promise((resolve, reject) => {
+        (0, child_process_1.exec)(command, { cwd }, (error, stdout, stderr) => {
+            if (error) {
+                reject(new Error(`Command failed: ${command}\nError: ${error.message}\nStderr: ${stderr}`));
+            }
+            else {
+                resolve(stdout.trim());
+            }
+        });
+    });
+}
 async function analyzeProject(workspacePath) {
     try {
         const response = await axios_1.default.post('http://localhost:8000/api/analyze-project', {
@@ -90,6 +104,33 @@ function activate(context) {
     const disposable = vscode.commands.registerCommand('ai-readme-generator.openForm', async () => {
         console.log('Command ai-readme-generator.openForm is being executed');
         try {
+            const workspaceFolders = vscode.workspace.workspaceFolders;
+            if (!workspaceFolders) {
+                vscode.window.showErrorMessage('No workspace folder found.');
+                return;
+            }
+            const workspacePath = workspaceFolders[0].uri.fsPath;
+            const readmePath = path.join(workspacePath, 'README.md');
+            // Check if README.md exists
+            if (fs.existsSync(readmePath)) {
+                const choice = await vscode.window.showInformationMessage('A README.md already exists. What would you like to do?', 'Generate New', 'Use Existing', 'Automate Git' // Option to automate Git for the existing README
+                );
+                if (choice === 'Use Existing') {
+                    const existingDoc = await vscode.workspace.openTextDocument(readmePath);
+                    await vscode.window.showTextDocument(existingDoc, vscode.ViewColumn.One);
+                    return;
+                }
+                else if (choice === 'Automate Git') {
+                    vscode.commands.executeCommand('ai-readme-generator.automateGit');
+                    return;
+                }
+                else if (choice !== 'Generate New') {
+                    // User cancelled the prompt
+                    return;
+                }
+                // If choice is 'Generate New', continue to open the form
+            }
+            // Proceed to open the form (if no README or user chose 'Generate New')
             const panel = vscode.window.createWebviewPanel('readmeGenerator', 'AI README Generator', vscode.ViewColumn.One, {
                 enableScripts: true,
             });
@@ -145,6 +186,121 @@ function activate(context) {
     });
     context.subscriptions.push(disposable);
     console.log('AI README Generator command registered successfully');
+    // Register command to automate Git process
+    const gitAutomateDisposable = vscode.commands.registerCommand('ai-readme-generator.automateGit', async () => {
+        console.log('Command ai-readme-generator.automateGit is being executed');
+        const workspaceFolders = vscode.workspace.workspaceFolders;
+        if (!workspaceFolders) {
+            vscode.window.showErrorMessage('No workspace folder found.');
+            return;
+        }
+        const workspacePath = workspaceFolders[0].uri.fsPath;
+        // Check if the workspace is a Git repository
+        const gitPath = path.join(workspacePath, '.git');
+        if (!fs.existsSync(gitPath)) {
+            vscode.window.showErrorMessage('The current workspace is not a Git repository. Please run git init first.');
+            return;
+        }
+        // Check if a remote is configured
+        try {
+            const remoteOutput = await runCommand('git remote -v', workspacePath);
+            if (!remoteOutput) {
+                vscode.window.showWarningMessage('No Git remote is configured for this repository. Git push may fail.');
+            }
+        }
+        catch (error) {
+            console.error('Error checking for Git remote:', error);
+            // Continue even if checking remote fails, git push will handle it
+        }
+        // Prompt for commit message
+        const commitMessage = await vscode.window.showInputBox({
+            prompt: 'Enter commit message',
+            placeHolder: 'feat: Add README.md'
+        });
+        if (!commitMessage) {
+            vscode.window.showInformationMessage('Git commit cancelled.');
+            return;
+        }
+        // Check and set Git user identity if needed
+        let userName = '';
+        let userEmail = '';
+        try {
+            userName = await runCommand('git config user.name', workspacePath);
+            userEmail = await runCommand('git config user.email', workspacePath);
+        }
+        catch (error) {
+            // Ignore errors, likely means config is not set
+        }
+        if (!userName || !userEmail) {
+            vscode.window.showInformationMessage('Your Git user name and email are not configured. Please provide them to proceed.');
+            const newUserName = await vscode.window.showInputBox({
+                prompt: 'Enter your Git user name',
+                placeHolder: 'Your Name'
+            });
+            if (!newUserName) {
+                vscode.window.showInformationMessage('Git user name not provided. Git process cancelled.');
+                return;
+            }
+            const newUserEmail = await vscode.window.showInputBox({
+                prompt: 'Enter your Git user email',
+                placeHolder: 'your.email@example.com'
+            });
+            if (!newUserEmail) {
+                vscode.window.showInformationMessage('Git user email not provided. Git process cancelled.');
+                return;
+            }
+            // Set Git user identity locally for this repository
+            try {
+                await runCommand(`git config user.name "${newUserName}"`, workspacePath);
+                await runCommand(`git config user.email "${newUserEmail}"`, workspacePath);
+                vscode.window.showInformationMessage('Git user identity configured.');
+                userName = newUserName; // Update variables for commit
+                userEmail = newUserEmail;
+            }
+            catch (error) {
+                console.error('Error setting Git user identity:', error);
+                vscode.window.showErrorMessage(`Failed to set Git user identity: ${error.message}`);
+                return;
+            }
+        }
+        // Ask for confirmation
+        const confirmation = await vscode.window.showInformationMessage(`Are you sure you want to run git add ., git commit -m "${commitMessage}", and git push in ${path.basename(workspacePath)}?`, 'Yes', 'No');
+        if (confirmation !== 'Yes') {
+            vscode.window.showInformationMessage('Git process cancelled.');
+            return;
+        }
+        // TODO: Implement Git command execution here
+        // vscode.window.showInformationMessage('Git automation process initiated (Git command execution is not yet implemented).');
+        vscode.window.withProgress({
+            location: vscode.ProgressLocation.Notification,
+            title: 'Automating Git process...',
+            cancellable: false
+        }, async (progress) => {
+            try {
+                progress.report({ message: 'Running git add .' });
+                await runCommand('git add .', workspacePath);
+                vscode.window.showInformationMessage('Git add completed.');
+                progress.report({ message: `Running git commit -m "${commitMessage}"` });
+                await runCommand(`git commit -m "${commitMessage}"`, workspacePath);
+                vscode.window.showInformationMessage('Git commit completed.');
+                progress.report({ message: 'Running git push' });
+                await runCommand('git push', workspacePath);
+                vscode.window.showInformationMessage('Git push completed.');
+                vscode.window.showInformationMessage('Git process completed successfully!');
+            }
+            catch (error) {
+                console.error('Error during Git automation:', error);
+                // Explicitly include stderr in the user-facing error message
+                let userErrorMessage = `Git automation failed: ${error.message}`;
+                if (error.stderr) {
+                    userErrorMessage += `\nStderr: ${error.stderr}`;
+                    console.error('Git command stderr:', error.stderr); // Also log to console
+                }
+                vscode.window.showErrorMessage(userErrorMessage, { modal: true }); // Use modal to make it prominent
+            }
+        });
+    });
+    context.subscriptions.push(gitAutomateDisposable);
     const statusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 100);
     statusBarItem.text = "$(book) Generate README";
     statusBarItem.command = 'ai-readme-generator.openForm';
@@ -340,9 +496,13 @@ function showReadmeOptions(options) {
             case 'selectReadme':
                 const selectedReadme = options[message.index];
                 if (selectedReadme) {
+                    // Keep the full content including the heading
+                    let content = selectedReadme.content.trim();
+                    // Remove the style indicator line (e.g., [Professional])
+                    content = content.replace(/^\[(Professional|Modern|Minimal)\]\s*\n/, '').trim();
                     // Create a new untitled document with the selected README
                     const doc = await vscode.workspace.openTextDocument({
-                        content: selectedReadme.content,
+                        content: content,
                         language: 'markdown'
                     });
                     // Show the document in a new editor
@@ -352,23 +512,26 @@ function showReadmeOptions(options) {
                     if (saveResponse === 'Save') {
                         const workspaceFolders = vscode.workspace.workspaceFolders;
                         if (workspaceFolders) {
-                            const readmePath = vscode.Uri.joinPath(workspaceFolders[0].uri, 'README.md');
+                            const readmePath = path.join(workspaceFolders[0].uri.fsPath, 'README.md');
                             // Check if README.md already exists
-                            try {
-                                await vscode.workspace.fs.stat(readmePath);
+                            if (fs.existsSync(readmePath)) {
                                 const overwriteResponse = await vscode.window.showWarningMessage('README.md already exists. Would you like to overwrite it?', 'Overwrite', 'Cancel');
                                 if (overwriteResponse !== 'Overwrite') {
                                     return;
                                 }
                             }
-                            catch {
-                                // File doesn't exist, proceed with save
+                            try {
+                                // Save the file using fs.writeFileSync
+                                fs.writeFileSync(readmePath, content, 'utf8');
+                                vscode.window.showInformationMessage('README.md saved successfully!');
+                                // Open the saved file
+                                const savedDoc = await vscode.workspace.openTextDocument(readmePath);
+                                await vscode.window.showTextDocument(savedDoc, vscode.ViewColumn.One);
                             }
-                            // Save the file
-                            const edit = new vscode.WorkspaceEdit();
-                            edit.insert(readmePath, new vscode.Position(0, 0), selectedReadme.content);
-                            await vscode.workspace.applyEdit(edit);
-                            vscode.window.showInformationMessage('README saved successfully!');
+                            catch (error) {
+                                console.error('Error saving README:', error);
+                                vscode.window.showErrorMessage(`Failed to save README.md: ${error.message}`);
+                            }
                         }
                     }
                 }
